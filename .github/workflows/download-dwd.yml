@@ -1,0 +1,33 @@
+name: Download DWD MOSMIX KML (mit Versionierung)
+
+on:
+  schedule:
+    # 18:00 MEZ = 17:00 UTC (Winterzeit)
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Zeitstempel erzeugen
+        id: timestamp
+        run: echo "ts=$(date -u +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_OUTPUT
+
+      - name: Datei herunterladen
+        run: |
+          mkdir -p dwd
+          wget -O "dwd/MOSMIX_L_LATEST_10416_${{ steps.timestamp.outputs.ts }}.kmz" \
+            "https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/10416/kml/MOSMIX_L_LATEST_10416.kmz"
+
+      - name: Änderungen committen
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add dwd/
+          git commit -m "Download DWD MOSMIX Datei ${{ steps.timestamp.outputs.ts }}" || echo "Keine Änderungen"
+          git push
